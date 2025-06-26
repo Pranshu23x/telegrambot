@@ -1,10 +1,15 @@
 import logging
 import os
 from PIL import Image
+import threading
+from flask import Flask
 import google.generativeai as genai
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatAction
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, CallbackQueryHandler, filters
+from telegram.ext import (
+    ApplicationBuilder, ContextTypes,
+    CommandHandler, MessageHandler, CallbackQueryHandler, filters
+)
 
 # === API KEYS ===
 TELEGRAM_TOKEN = "8087188419:AAGbEFhigw3MqhnwSx5HTyfR6AEUvh00NPw"
@@ -12,20 +17,33 @@ GEMINI_API_KEY = "AIzaSyARIRKeCL3UQRGsiGyIn-OzvYWziSJB-zo"
 
 # === Configure Gemini ===
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('models/gemini-1.5-flash')  # Gemini 1.5 Flash
+model = genai.GenerativeModel('models/gemini-1.5-flash')
+
+# === Flask App to keep Render alive ===
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def index():
+    return "✅ Bot is running!"
+
+def run_flask():
+    flask_app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
 
 # === Logging ===
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
 # === Mode States ===
 USER_MODE = {}
 USER_IMAGES = {}
 
-# === Start Command ===
+# === Handlers ===
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✨ Hello! I'm your Gemini 1.5 Flash bot. Use /mode to choose an action.")
 
-# === Mode Selection ===
 async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🖼️ JPG to PDF", callback_data='mode_jpg')],
@@ -36,7 +54,6 @@ async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("🔧 Choose what you want to do:", reply_markup=reply_markup)
 
-# === Handle Mode Selection Callback ===
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -69,7 +86,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         USER_IMAGES[chat_id] = []
         await query.edit_message_text("📤 Now send JPG images.")
 
-# === Handle Photo Upload ===
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     mode = USER_MODE.get(chat_id)
@@ -86,7 +102,6 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("✅ Image received. Send more or type /convert to generate the PDF.")
 
-# === Convert Images to PDF ===
 async def convert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     mode = USER_MODE.get(chat_id)
@@ -120,7 +135,6 @@ async def convert(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     USER_IMAGES[chat_id] = []
 
-# === Handle Text with Gemini ===
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_input = update.message.text
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
@@ -134,7 +148,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Gemini API Error.")
 
 # === Main Runner ===
-def main():
+
+def run_bot():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("mode", mode))
@@ -142,9 +157,9 @@ def main():
     app.add_handler(CallbackQueryHandler(button_callback))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-
-    print("🚀 Gemini PDF Bot running...")
+    logging.info("🚀 Gemini PDF Bot polling...")
     app.run_polling()
 
 if __name__ == '__main__':
-    main()
+    threading.Thread(target=run_flask).start()
+    run_bot()
