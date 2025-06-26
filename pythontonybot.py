@@ -54,7 +54,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     "✂️ Split PDFs into parts\n"
     "📎 Merge multiple PDFs\n"
     "🗜️ Compress large PDF files\n"
-    "💬 Or just ask me anything using Gemini AI!"
 )
 
 
