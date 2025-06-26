@@ -46,7 +46,17 @@ USER_IMAGES = {}
 # === Handlers ===
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("✨ Hello! I'm your Gemini 1.5 Flash bot. Use /mode to choose an action.")
+ await update.message.reply_text(
+    "Hi there, This is NExt_23x\n"
+    "\n"
+    "I can:\n"
+    "🖼️ Convert JPGs to PDFs\n"
+    "✂️ Split PDFs into parts\n"
+    "📎 Merge multiple PDFs\n"
+    "🗜️ Compress large PDF files\n"
+    "💬 Or just ask me anything using Gemini AI!"
+)
+
 
 async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
