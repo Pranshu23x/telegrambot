@@ -1,8 +1,9 @@
 import logging
 import os
-from PIL import Image
 import threading
 from flask import Flask
+from PIL import Image
+from dotenv import load_dotenv
 import google.generativeai as genai
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatAction
@@ -11,15 +12,18 @@ from telegram.ext import (
     CommandHandler, MessageHandler, CallbackQueryHandler, filters
 )
 
-# === API KEYS ===
-TELEGRAM_TOKEN = "8087188419:AAGbEFhigw3MqhnwSx5HTyfR6AEUvh00NPw"
-GEMINI_API_KEY = "AIzaSyARIRKeCL3UQRGsiGyIn-OzvYWziSJB-zo"
+# === Load .env ===
+load_dotenv()
+
+# === Secure API KEYS ===
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # === Configure Gemini ===
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('models/gemini-1.5-flash')
 
-# === Flask App to keep Render alive ===
+# === Flask App to keep alive ===
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
