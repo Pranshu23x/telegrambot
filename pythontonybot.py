@@ -47,7 +47,7 @@ USER_IMAGES = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
  await update.message.reply_text(
-    "Hi there, This is NExt_23x\n"
+    "Hi there, This is NExt_23x\n, Made by Pranshu\n"
    
     "I can:\n"
     "🖼️ Convert JPGs to PDFs\n"
