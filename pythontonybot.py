@@ -46,24 +46,34 @@ USER_IMAGES = {}
 # === Handlers ===
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
- await update.message.reply_text(
-    "Hi there, This is NExt_23x\n, Made by Pranshu\n"
-   
-    "I can:\n"
-    "🖼️ Convert JPGs to PDFs\n"
-    "✂️ Split PDFs into parts\n"
-    "📎 Merge multiple PDFs\n"
-    "🗜️ Compress large PDF files\n"
-"DO CONNECT ON LINKEDIN:\n https://www.linkedin.com/in/pranshu-23x?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"
-)
+    keyboard = [
+        [InlineKeyboardButton("🧠 Just Chat", callback_data='just_chat')],
+        [InlineKeyboardButton("🖼️ Convert JPG to PDF", callback_data='mode_jpg')],
+        [InlineKeyboardButton("✂️ Split PDF", callback_data='mode_split')],
+        [InlineKeyboardButton("📎 Merge PDFs", callback_data='mode_merge')],
+        [InlineKeyboardButton("🗜️ Compress PDF", callback_data='mode_compress')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
+    await update.message.reply_text(
+        "Hi there, This is NExt_23x\n, Made by Pranshu\n"
+        "I can:\n"
+        "🖼️ Convert JPGs to PDFs\n"
+        "✂️ Split PDFs into parts\n"
+        "📎 Merge multiple PDFs\n"
+        "🗜️ Compress large PDF files\n"
+        "DO CONNECT ON LINKEDIN:\n"
+        "https://www.linkedin.com/in/pranshu-23x?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
+        reply_markup=reply_markup
+    )
 
 async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🖼️ JPG to PDF", callback_data='mode_jpg')],
         [InlineKeyboardButton("✂️ Split PDF", callback_data='mode_split')],
         [InlineKeyboardButton("📎 Merge PDFs", callback_data='mode_merge')],
-        [InlineKeyboardButton("🗜️ Compress PDF", callback_data='mode_compress')]
+        [InlineKeyboardButton("🗜️ Compress PDF", callback_data='mode_compress')],
+        [InlineKeyboardButton("🧠 Just Chat", callback_data='just_chat')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("🔧 Choose what you want to do:", reply_markup=reply_markup)
@@ -72,6 +82,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     chat_id = query.message.chat.id
+
+    if query.data == 'just_chat':
+        USER_MODE[chat_id] = 'chat'
+        await query.edit_message_text("🧠 You’re now in *Just Chat* mode. Type anything to start chatting with Gemini.", parse_mode="Markdown")
+        return
 
     if query.data == 'mode_jpg':
         USER_MODE[chat_id] = 'jpg_to_pdf_choice'
@@ -148,10 +163,18 @@ async def convert(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(p)
 
     USER_IMAGES[chat_id] = []
+    USER_MODE[chat_id] = None
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    mode = USER_MODE.get(chat_id)
+
+    if mode != 'chat':
+        await update.message.reply_text("💬 Please select *Just Chat* from /start to begin chatting with Gemini.", parse_mode="Markdown")
+        return
+
     user_input = update.message.text
-    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+    await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
 
     try:
         response = model.generate_content(user_input)
