@@ -43,10 +43,23 @@ logging.basicConfig(
 USER_MODE = {}
 USER_IMAGES = {}
 
-# === Handlers ===
-
+# === /start Handler ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
+        # First message: welcome + LinkedIn
+        await update.message.reply_text(
+            "<b>Hi there, this is NExt_23x Bot 🤖</b>\n"
+            "Made by <i>Pranshu</i>\n\n"
+            "I can:\n"
+            "🖼️ Convert JPGs to PDFs\n"
+            "✂️ Split PDFs into parts\n"
+            "📎 Merge multiple PDFs\n"
+            "🗜️ Compress large PDF files\n\n"
+            '<a href="https://www.linkedin.com/in/pranshu-23x?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app">🔗 Connect on LinkedIn</a>',
+            parse_mode="HTML"
+        )
+
+        # Second message: buttons only
         keyboard = [
             [InlineKeyboardButton("🧠 Just Chat", callback_data='just_chat')],
             [InlineKeyboardButton("🖼️ Convert JPG to PDF", callback_data='mode_jpg')],
@@ -57,22 +70,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.message.reply_text(
-            "**Hi there, this is NExt_23x Bot 🤖**\n"
-            "Made by *Pranshu*\n\n"
-            "I can:\n"
-            "🖼️ Convert JPGs to PDFs\n"
-            "✂️ Split PDFs into parts\n"
-            "📎 Merge multiple PDFs\n"
-            "🗜️ Compress large PDF files\n\n"
-            "👉 _Select an option below to continue:_\n\n"
-            "[🔗 Connect on LinkedIn](https://www.linkedin.com/in/pranshu-23x?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app)",
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
+            "👇 Choose what you want to do:",
+            reply_markup=reply_markup
         )
+
     except Exception as e:
         logging.error(f"/start error: {e}")
         await update.message.reply_text("⚠️ Something went wrong while loading options. Try again.")
 
+# === /mode Command ===
 async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🖼️ JPG to PDF", callback_data='mode_jpg')],
@@ -84,6 +90,7 @@ async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("🔧 Choose what you want to do:", reply_markup=reply_markup)
 
+# === Callback Button ===
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -91,7 +98,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == 'just_chat':
         USER_MODE[chat_id] = 'chat'
-        await query.edit_message_text("🧠 You’re now in *Just Chat* mode. Type anything to start chatting with Gemini.", parse_mode="Markdown")
+        await query.edit_message_text("🧠 You’re now in <b>Just Chat</b> mode. Type anything to start chatting with Gemini.", parse_mode="HTML")
         return
 
     if query.data == 'mode_jpg':
@@ -121,6 +128,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         USER_IMAGES[chat_id] = []
         await query.edit_message_text("📤 Now send JPG images.")
 
+# === Photo Handler ===
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     mode = USER_MODE.get(chat_id)
@@ -137,6 +145,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("✅ Image received. Send more or type /convert to generate the PDF.")
 
+# === Convert JPGs to PDF ===
 async def convert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     mode = USER_MODE.get(chat_id)
@@ -171,12 +180,13 @@ async def convert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     USER_IMAGES[chat_id] = []
     USER_MODE[chat_id] = None
 
+# === Chat Mode (Gemini) ===
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     mode = USER_MODE.get(chat_id)
 
     if mode != 'chat':
-        await update.message.reply_text("💬 Please select *Just Chat* from /start to begin chatting with Gemini.", parse_mode="Markdown")
+        await update.message.reply_text("💬 Please select <b>Just Chat</b> from /start to begin chatting with Gemini.", parse_mode="HTML")
         return
 
     user_input = update.message.text
@@ -191,7 +201,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Gemini API Error.")
 
 # === Main Runner ===
-
 def run_bot():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
