@@ -46,27 +46,32 @@ USER_IMAGES = {}
 # === Handlers ===
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("🧠 Just Chat", callback_data='just_chat')],
-        [InlineKeyboardButton("🖼️ Convert JPG to PDF", callback_data='mode_jpg')],
-        [InlineKeyboardButton("✂️ Split PDF", callback_data='mode_split')],
-        [InlineKeyboardButton("📎 Merge PDFs", callback_data='mode_merge')],
-        [InlineKeyboardButton("🗜️ Compress PDF", callback_data='mode_compress')]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    try:
+        keyboard = [
+            [InlineKeyboardButton("🧠 Just Chat", callback_data='just_chat')],
+            [InlineKeyboardButton("🖼️ Convert JPG to PDF", callback_data='mode_jpg')],
+            [InlineKeyboardButton("✂️ Split PDF", callback_data='mode_split')],
+            [InlineKeyboardButton("📎 Merge PDFs", callback_data='mode_merge')],
+            [InlineKeyboardButton("🗜️ Compress PDF", callback_data='mode_compress')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text(
-        "Hi there, This is NExt_23x 🤖\nMade by Pranshu\n\n"
-        "I can:\n"
-        "🖼️ Convert JPGs to PDFs\n"
-        "✂️ Split PDFs into parts\n"
-        "📎 Merge multiple PDFs\n"
-        "🗜️ Compress large PDF files\n\n"
-        "👉 Select an option below to continue:\n\n"
-        "🔗 [Connect on LinkedIn](https://www.linkedin.com/in/pranshu-23x?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app)",
-        reply_markup=reply_markup,
-        parse_mode="Markdown"
-    )
+        await update.message.reply_text(
+            "**Hi there, this is NExt_23x Bot 🤖**\n"
+            "Made by *Pranshu*\n\n"
+            "I can:\n"
+            "🖼️ Convert JPGs to PDFs\n"
+            "✂️ Split PDFs into parts\n"
+            "📎 Merge multiple PDFs\n"
+            "🗜️ Compress large PDF files\n\n"
+            "👉 _Select an option below to continue:_\n\n"
+            "[🔗 Connect on LinkedIn](https://www.linkedin.com/in/pranshu-23x?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app)",
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        logging.error(f"/start error: {e}")
+        await update.message.reply_text("⚠️ Something went wrong while loading options. Try again.")
 
 async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
