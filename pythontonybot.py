@@ -56,15 +56,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "Hi there, This is NExt_23x\n, Made by Pranshu\n"
+        "Hi there, This is NExt_23x 🤖\nMade by Pranshu\n\n"
         "I can:\n"
         "🖼️ Convert JPGs to PDFs\n"
         "✂️ Split PDFs into parts\n"
         "📎 Merge multiple PDFs\n"
-        "🗜️ Compress large PDF files\n"
-        "DO CONNECT ON LINKEDIN:\n"
-        "https://www.linkedin.com/in/pranshu-23x?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
-        reply_markup=reply_markup
+        "🗜️ Compress large PDF files\n\n"
+        "👉 Select an option below to continue:\n\n"
+        "🔗 [Connect on LinkedIn](https://www.linkedin.com/in/pranshu-23x?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app)",
+        reply_markup=reply_markup,
+        parse_mode="Markdown"
     )
 
 async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
