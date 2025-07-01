@@ -1,6 +1,6 @@
 python-telegram-bot==20.3
-google-generativeai
+openai
 pillow
 python-dotenv
 Flask
-python-dotenv
+
