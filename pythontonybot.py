@@ -4,7 +4,7 @@ import threading
 from flask import Flask
 from PIL import Image
 from dotenv import load_dotenv
-import openai
+import google.generativeai as genai
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatAction
 from telegram.ext import (
@@ -17,16 +17,11 @@ load_dotenv()
 
 # === Secure API KEYS ===
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
-AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# === Configure Azure OpenAI ===
-openai.api_type = "azure"
-openai.api_base = AZURE_OPENAI_ENDPOINT
-openai.api_version = AZURE_OPENAI_API_VERSION
-openai.api_key = AZURE_OPENAI_API_KEY
+# === Configure Gemini ===
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel('models/gemini-1.5-flash')
 
 # === Flask App to keep alive ===
 flask_app = Flask(__name__)
@@ -51,6 +46,7 @@ USER_IMAGES = {}
 # === /start Handler ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
+        # First message: welcome + LinkedIn
         await update.message.reply_text(
             "<b>Hi there, this is NExt_23x Bot 🤖</b>\n"
             "Made by <i>Pranshu</i>\n\n"
@@ -58,22 +54,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🖼️ Convert JPGs to PDFs\n"
             "✂️ Split PDFs into parts\n"
             "📎 Merge multiple PDFs\n"
-            "💜 Compress large PDF files\n\n"
+            "🗜️ Compress large PDF files\n\n"
             '<a href="https://www.linkedin.com/in/pranshu-23x?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app">🔗 Connect on LinkedIn</a>',
             parse_mode="HTML"
         )
 
+        # Second message: buttons only
         keyboard = [
             [InlineKeyboardButton("🧠 Just Chat", callback_data='just_chat')],
             [InlineKeyboardButton("🖼️ Convert JPG to PDF", callback_data='mode_jpg')],
             [InlineKeyboardButton("✂️ Split PDF", callback_data='mode_split')],
             [InlineKeyboardButton("📎 Merge PDFs", callback_data='mode_merge')],
-            [InlineKeyboardButton("💜 Compress PDF", callback_data='mode_compress')]
+            [InlineKeyboardButton("🗜️ Compress PDF", callback_data='mode_compress')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.message.reply_text(
-            "🔻 Choose what you want to do:",
+            "👇 Choose what you want to do:",
             reply_markup=reply_markup
         )
 
@@ -87,7 +84,7 @@ async def mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🖼️ JPG to PDF", callback_data='mode_jpg')],
         [InlineKeyboardButton("✂️ Split PDF", callback_data='mode_split')],
         [InlineKeyboardButton("📎 Merge PDFs", callback_data='mode_merge')],
-        [InlineKeyboardButton("💜 Compress PDF", callback_data='mode_compress')],
+        [InlineKeyboardButton("🗜️ Compress PDF", callback_data='mode_compress')],
         [InlineKeyboardButton("🧠 Just Chat", callback_data='just_chat')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -101,13 +98,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == 'just_chat':
         USER_MODE[chat_id] = 'chat'
-        await query.edit_message_text("🧠 You’re now in <b>Just Chat</b> mode. Type anything to start chatting.", parse_mode="HTML")
+        await query.edit_message_text("🧠 You’re now in <b>Just Chat</b> mode. Type anything to start chatting with Gemini.", parse_mode="HTML")
         return
 
     if query.data == 'mode_jpg':
         USER_MODE[chat_id] = 'jpg_to_pdf_choice'
         keyboard = [
-            [InlineKeyboardButton("📂 Single PDF", callback_data='jpg_single')],
+            [InlineKeyboardButton("🗂️ Single PDF", callback_data='jpg_single')],
             [InlineKeyboardButton("📄 Separate PDFs", callback_data='jpg_multiple')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -120,16 +117,16 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == 'mode_merge':
         USER_MODE[chat_id] = 'merge_pdf'
         USER_IMAGES[chat_id] = []
-        await query.edit_message_text("📏 Send all PDFs you want to merge.")
+        await query.edit_message_text("📎 Send all PDFs you want to merge.")
 
     elif query.data == 'mode_compress':
         USER_MODE[chat_id] = 'compress_pdf'
-        await query.edit_message_text("💜 Send a PDF to compress.")
+        await query.edit_message_text("🗜️ Send a PDF to compress.")
 
     elif query.data in ['jpg_single', 'jpg_multiple']:
         USER_MODE[chat_id] = query.data
         USER_IMAGES[chat_id] = []
-        await query.edit_message_text("📄 Now send JPG images.")
+        await query.edit_message_text("📤 Now send JPG images.")
 
 # === Photo Handler ===
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -183,34 +180,25 @@ async def convert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     USER_IMAGES[chat_id] = []
     USER_MODE[chat_id] = None
 
-# === Chat Mode (Azure OpenAI GPT-4.1) ===
+# === Chat Mode (Gemini) ===
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     mode = USER_MODE.get(chat_id)
 
     if mode != 'chat':
-        await update.message.reply_text("💬 Please select <b>Just Chat</b> from /start to begin chatting.", parse_mode="HTML")
+        await update.message.reply_text("💬 Please select <b>Just Chat</b> from /start to begin chatting with Gemini.", parse_mode="HTML")
         return
 
     user_input = update.message.text
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
 
     try:
-        response = openai.ChatCompletion.create(
-            engine=AZURE_OPENAI_DEPLOYMENT,
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": user_input}
-            ],
-            temperature=0.7,
-            max_tokens=1000
-        )
-        reply = response['choices'][0]['message']['content']
+        response = model.generate_content(user_input)
+        reply = response.text.strip() if hasattr(response, "text") else "🤖 Sorry, I couldn’t generate a response."
         await update.message.reply_text(reply)
-
     except Exception as e:
-        logging.error(f"Azure OpenAI error: {e}")
-        await update.message.reply_text("⚠️ Azure OpenAI API Error.")
+        logging.error(f"Gemini error: {e}")
+        await update.message.reply_text("⚠️ Gemini API Error.")
 
 # === Main Runner ===
 def run_bot():
@@ -221,7 +209,7 @@ def run_bot():
     app.add_handler(CallbackQueryHandler(button_callback))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    logging.info("🚀 Azure GPT PDF Bot polling...")
+    logging.info("🚀 Gemini PDF Bot polling...")
     app.run_polling()
 
 if __name__ == '__main__':
